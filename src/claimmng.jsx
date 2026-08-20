@@ -197,7 +197,11 @@ const ClaimDetails = () => {
                       <h2 className="text-xl font-semibold mb-1">Match Found</h2>
                       <p className="text-gray-400 text-sm mb-3">{match.foundReport.category} - {match.foundReport.color}</p>
                       <div className="flex items-center gap-4">
-                        <span className="text-sm text-gray-300">{match.foundReport.description.substring(0, 50)}...</span>
+                        <span className="text-sm text-gray-300">
+                          {match.status === 'VERIFIED'
+                            ? `${match.foundReport.description.substring(0, 50)}...`
+                            : '[Protected for anti-fraud security]'}
+                        </span>
                       </div>
                     </div>
                     <div className="text-right">
@@ -235,7 +239,7 @@ const ClaimDetails = () => {
                       <p><span className="text-gray-400">Category:</span> <span className="text-white font-medium">{match.foundReport.category}</span></p>
                       <p><span className="text-gray-400">Brand:</span> <span className="text-white font-medium">{match.foundReport.brand || 'N/A'}</span></p>
                       <p><span className="text-gray-400">Color:</span> <span className="text-white font-medium">{match.foundReport.color || 'N/A'}</span></p>
-                      <p><span className="text-gray-400">Unique ID:</span> <span className="text-white font-medium">{match.foundReport.uniqueIdentifier || 'N/A'}</span></p>
+                      <p><span className="text-gray-400">Unique ID:</span> <span className="text-white font-medium">{match.status === 'VERIFIED' ? (match.foundReport.uniqueIdentifier || 'N/A') : '••••••••'}</span></p>
                       <p><span className="text-gray-400">Date Found:</span> <span className="text-white font-medium">{new Date(match.foundReport.dateLostFound).toLocaleDateString()}</span></p>
                     </div>
                   </div>
@@ -353,7 +357,12 @@ const ClaimDetails = () => {
                 {expandedMatch === match.id && (
                   <div className="px-6 py-4 bg-white/5 border-t border-white/10">
                     <p className="text-sm text-gray-300 mb-3"><span className="font-semibold">Your Description:</span> {match.lostReport.description}</p>
-                    <p className="text-sm text-gray-300"><span className="font-semibold">Found Item Description:</span> {match.foundReport.description}</p>
+                    <p className="text-sm text-gray-300">
+                      <span className="font-semibold">Found Item Description:</span>{' '}
+                      {match.status === 'VERIFIED'
+                        ? match.foundReport.description
+                        : '[Protected for anti-fraud security. Complete verification questions to unlock full details.]'}
+                    </p>
                   </div>
                 )}
               </div>
