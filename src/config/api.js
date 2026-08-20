@@ -1,5 +1,5 @@
 // API Configuration — set VITE_API_URL at build time (Vercel env / .env)
-const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/\/$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'https://pm-project-backend.vercel.app').replace(/\/$/, '');
 
 export const API_ENDPOINTS = {
   // Auth endpoints
@@ -7,6 +7,7 @@ export const API_ENDPOINTS = {
   SIGNUP: `${API_BASE_URL}/auth/register`,
 
   // Reports endpoints
+  CREATE_REPORT: `${API_BASE_URL}/reports/lost`,
   REPORT_LOST: `${API_BASE_URL}/reports/lost`,
   REPORT_FOUND: `${API_BASE_URL}/reports/found`,
   GET_MY_REPORTS: `${API_BASE_URL}/reports/me`,

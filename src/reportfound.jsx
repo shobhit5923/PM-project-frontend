@@ -45,7 +45,7 @@ const ReportFoundPage = () => {
         description,
       ].filter(Boolean).join('\n');
 
-      const data = await fetchAPI(API_ENDPOINTS.CREATE_REPORT, {
+      const data = await fetchAPI(API_ENDPOINTS.REPORT_FOUND, {
         method: 'POST',
         body: JSON.stringify({
           type: 'FOUND',
@@ -56,6 +56,7 @@ const ReportFoundPage = () => {
           uniqueIdentifier: uniqueIdentifier || null,
           description: fullDescription,
           locationText: 'Campus',
+          dateTime: new Date().toISOString(),
           dateLostFound: new Date().toISOString(),
         }),
       });
