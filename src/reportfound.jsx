@@ -41,9 +41,9 @@ const ReportFoundPage = () => {
 
     try {
       const fullDescription = [
-        itemName ? `Name: ${itemName}` : '',
-        description,
-      ].filter(Boolean).join('\n');
+        itemName ? itemName.trim() : '',
+        description ? description.trim() : '',
+      ].filter(Boolean).join(' - ');
 
       const data = await fetchAPI(API_ENDPOINTS.REPORT_FOUND, {
         method: 'POST',
