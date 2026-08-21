@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import logo from './assets/logo1.png';
 import { ArrowRight, Loader, CheckCircle2, AlertCircle, Menu, X } from 'lucide-react';
 import { API_ENDPOINTS, fetchAPI } from './config/api';
+import { trackEvent } from './config/mixpanel';
 
 const ReportFoundPage = () => {
   const navigate = useNavigate();
@@ -62,6 +63,14 @@ const ReportFoundPage = () => {
       });
 
       setReportId(data.id);
+
+      trackEvent('Report Found Submitted', {
+        category,
+        brand: brand || null,
+        model: model || null,
+        color: color || null,
+      });
+
       setStep(3);
     } catch (err) {
       console.error('Error creating report:', err);

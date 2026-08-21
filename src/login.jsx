@@ -3,6 +3,7 @@ import { User, Lock } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import logo from "./assets/logo.png";
 import { API_ENDPOINTS, fetchAPI } from "./config/api";
+import { trackEvent, identifyUser } from "./config/mixpanel";
 
 const GlassLogin = () => {
   const navigate = useNavigate();
@@ -31,7 +32,16 @@ const GlassLogin = () => {
       if (data.token) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
+
+        if (data.user) {
+          identifyUser(data.user.id, {
+            name: data.user.name,
+            email: data.user.email,
+          });
+        }
       }
+
+      trackEvent('User Logged In', { email: data.user?.email });
 
       navigate("/services");
     } catch (err) {

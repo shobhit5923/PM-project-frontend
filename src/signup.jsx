@@ -3,6 +3,7 @@ import { User, Mail, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import logo from "./assets/logo.png";
 import { API_ENDPOINTS, fetchAPI } from "./config/api";
+import { trackEvent } from "./config/mixpanel";
 
 const GlassSignup = () => {
   const navigate = useNavigate();
@@ -33,6 +34,8 @@ const GlassSignup = () => {
         method: "POST",
         body: JSON.stringify({ name, email, password }),
       });
+
+      trackEvent('User Signed Up', { name, email });
 
       navigate("/login");
     } catch (err) {

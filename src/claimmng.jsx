@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import logo from "./assets/logo1.png";
 import { API_ENDPOINTS, fetchAPI } from './config/api';
+import { trackEvent } from './config/mixpanel';
 
 const ClaimDetails = () => {
   const [matches, setMatches] = useState([]);
@@ -83,6 +84,7 @@ const ClaimDetails = () => {
         });
         setQuestions(qs || []);
       }
+      trackEvent('Verification Started', { matchId });
     } catch (err) {
       setVerificationMessage(err.message || 'Failed to start verification');
       setVerifyingMatchId(null);
@@ -116,6 +118,13 @@ const ClaimDetails = () => {
           ? 'Ownership verified! Check claim status for next steps.'
           : `Answers submitted. Updated score: ${Math.round(result.finalScore || 0)}`
       );
+
+      trackEvent('Verification Answers Submitted', {
+        matchId,
+        status: result.status,
+        finalScore: result.finalScore,
+      });
+
       setVerifyingMatchId(null);
       setQuestions([]);
       await fetchMatches();
