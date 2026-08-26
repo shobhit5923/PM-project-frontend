@@ -22,6 +22,8 @@ const ClaimDetails = () => {
   const [answers, setAnswers] = useState({});
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [verifiedMatch, setVerifiedMatch] = useState(null);
 
   const fetchMatches = async ({ showLoading = true } = {}) => {
     try {
@@ -68,6 +70,10 @@ const ClaimDetails = () => {
     return 'text-orange-400';
   };
 
+  const isVerified = (match) => {
+    return match.status === 'VERIFIED' || match.finalScore >= 85;
+  };
+
   const startVerification = async (matchId) => {
     setVerificationLoading(true);
     setVerificationMessage('');
@@ -99,8 +105,8 @@ const ClaimDetails = () => {
       answer: answers[q.id] || '',
     }));
 
-    if (payload.some((a) => !a.answer.trim())) {
-      setVerificationMessage('Please answer all questions');
+    if (payload.every((a) => !a.answer.trim())) {
+      setVerificationMessage('Please answer at least one question');
       return;
     }
 
@@ -113,10 +119,13 @@ const ClaimDetails = () => {
         body: JSON.stringify({ answers: payload }),
       });
 
+      const updatedScore = Math.round(result.finalScore || 0);
+      const isClaimVerified = result.status === 'VERIFIED' || updatedScore >= 85;
+
       setVerificationMessage(
-        result.status === 'VERIFIED'
-          ? 'Ownership verified! Check claim status for next steps.'
-          : `Answers submitted. Updated score: ${Math.round(result.finalScore || 0)}`
+        isClaimVerified
+          ? 'Ownership verified! You can collect your device from the IT Office.'
+          : `Answers submitted. Updated score: ${updatedScore}`
       );
 
       trackEvent('Verification Answers Submitted', {
@@ -125,9 +134,14 @@ const ClaimDetails = () => {
         finalScore: result.finalScore,
       });
 
+      if (isClaimVerified) {
+        setVerifiedMatch(result);
+        setShowSuccessModal(true);
+      }
+
       setVerifyingMatchId(null);
       setQuestions([]);
-      await fetchMatches();
+      await fetchMatches({ showLoading: false });
     } catch (err) {
       setVerificationMessage(err.message || 'Failed to submit answers');
     } finally {
@@ -170,6 +184,34 @@ const ClaimDetails = () => {
         )}
       </nav>
 
+      {/* Verification Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
+          <div className="bg-[#0D223F] border border-green-500/40 rounded-2xl max-w-md w-full p-6 shadow-2xl text-center space-y-4">
+            <div className="w-16 h-16 bg-green-500/20 text-green-400 rounded-full flex items-center justify-center mx-auto text-3xl shadow-lg border border-green-500/30">
+              🎉
+            </div>
+            <h2 className="text-2xl font-bold text-white">Claim Verified!</h2>
+            <p className="text-gray-300 text-sm leading-relaxed">
+              Your ownership has been successfully verified by our matching engine!
+            </p>
+            <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-left space-y-2 text-xs">
+              <p className="text-green-300 font-semibold text-sm">📍 Next Steps / Pickup Location:</p>
+              <p className="text-gray-200 leading-relaxed">
+                You can collect your device from the <span className="font-bold text-white">IT Office (CR12 / Campus Admin Office)</span> during working hours (9:00 AM - 5:00 PM).
+              </p>
+              <p className="text-gray-400 italic mt-1">Please present your Student/Staff ID card upon pickup.</p>
+            </div>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition cursor-pointer shadow-md"
+            >
+              Got it, Thank you!
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="flex-grow px-6 py-8 max-w-5xl mx-auto w-full">
         <div className="mb-8">
@@ -207,7 +249,7 @@ const ClaimDetails = () => {
                       <p className="text-gray-400 text-sm mb-3">{match.foundReport.category} - {match.foundReport.color}</p>
                       <div className="flex items-center gap-4">
                         <span className="text-sm text-gray-300">
-                          {match.status === 'VERIFIED'
+                          {isVerified(match)
                             ? `${match.foundReport.description.substring(0, 50)}...`
                             : '[Protected for anti-fraud security]'}
                         </span>
@@ -218,12 +260,27 @@ const ClaimDetails = () => {
                         {getMatchScore(match)}
                       </div>
                       <p className="text-xs text-gray-400">Match Score</p>
-                      <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${match.status === 'VERIFIED' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'}`}>
-                        {match.status === 'VERIFIED' ? '✓ Verified' : 'Pending Verification'}
+                      <span className={`inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium ${isVerified(match) ? 'bg-green-500/20 text-green-300 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-300'}`}>
+                        {isVerified(match) ? '✓ Claim Verified' : 'Pending Verification'}
                       </span>
                     </div>
                   </div>
                 </div>
+
+                {/* Claim Verified Pickup Banner */}
+                {isVerified(match) && (
+                  <div className="bg-green-500/10 border-b border-green-500/20 px-6 py-3 flex items-center justify-between text-xs text-green-300">
+                    <span className="font-semibold flex items-center gap-2">
+                      <CheckCircle2 size={16} className="text-green-400" /> Ownership Verified! You can collect your device from the IT Office.
+                    </span>
+                    <button
+                      onClick={() => setShowSuccessModal(true)}
+                      className="underline font-bold hover:text-green-200 cursor-pointer"
+                    >
+                      View Pickup Info
+                    </button>
+                  </div>
+                )}
 
                 {/* Details */}
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -248,7 +305,7 @@ const ClaimDetails = () => {
                       <p><span className="text-gray-400">Category:</span> <span className="text-white font-medium">{match.foundReport.category}</span></p>
                       <p><span className="text-gray-400">Brand:</span> <span className="text-white font-medium">{match.foundReport.brand || 'N/A'}</span></p>
                       <p><span className="text-gray-400">Color:</span> <span className="text-white font-medium">{match.foundReport.color || 'N/A'}</span></p>
-                      <p><span className="text-gray-400">Unique ID:</span> <span className="text-white font-medium">{match.status === 'VERIFIED' ? (match.foundReport.uniqueIdentifier || 'N/A') : '••••••••'}</span></p>
+                      <p><span className="text-gray-400">Unique ID:</span> <span className="text-white font-medium">{isVerified(match) ? (match.foundReport.uniqueIdentifier || 'N/A') : '••••••••'}</span></p>
                       <p><span className="text-gray-400">Date Found:</span> <span className="text-white font-medium">{new Date(match.foundReport.dateLostFound).toLocaleDateString()}</span></p>
                     </div>
                   </div>
@@ -351,11 +408,11 @@ const ClaimDetails = () => {
                   >
                     {expandedMatch === match.id ? 'Hide Details' : 'View Details'}
                   </button>
-                  {match.status !== 'VERIFIED' && verifyingMatchId !== match.id && (
+                  {!isVerified(match) && verifyingMatchId !== match.id && (
                     <button
                       onClick={() => startVerification(match.id)}
                       disabled={verificationLoading}
-                      className="flex-1 py-2.5 px-4 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium transition"
+                      className="flex-1 py-2.5 px-4 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium transition cursor-pointer"
                     >
                       Start Verification
                     </button>
@@ -368,7 +425,7 @@ const ClaimDetails = () => {
                     <p className="text-sm text-gray-300 mb-3"><span className="font-semibold">Your Description:</span> {match.lostReport.description}</p>
                     <p className="text-sm text-gray-300">
                       <span className="font-semibold">Found Item Description:</span>{' '}
-                      {match.status === 'VERIFIED'
+                      {isVerified(match)
                         ? match.foundReport.description
                         : '[Protected for anti-fraud security. Complete verification questions to unlock full details.]'}
                     </p>
