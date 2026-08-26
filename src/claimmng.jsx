@@ -6,6 +6,7 @@ import {
   Menu,
   X,
   Loader,
+  User,
 } from "lucide-react";
 import logo from "./assets/logo1.png";
 import { API_ENDPOINTS, fetchAPI } from './config/api';
@@ -24,6 +25,15 @@ const ClaimDetails = () => {
   const [verificationMessage, setVerificationMessage] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [verifiedMatch, setVerifiedMatch] = useState(null);
+
+  const [currentUser] = useState(() => {
+    try {
+      const u = localStorage.getItem('user');
+      return u ? JSON.parse(u) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const fetchMatches = async ({ showLoading = true } = {}) => {
     try {
@@ -167,9 +177,23 @@ const ClaimDetails = () => {
           <Link to="/about" className="hover:text-white transition">About</Link>
         </div>
 
-        <button className="md:hidden text-white" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="flex items-center gap-3">
+          {currentUser ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-xs font-semibold shadow-sm">
+              <User size={14} className="text-blue-400" />
+              <span>{currentUser.name || currentUser.email}</span>
+            </div>
+          ) : (
+            <Link to="/login" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition">
+              <User size={14} />
+              <span>Login</span>
+            </Link>
+          )}
+
+          <button className="md:hidden text-white" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
         
         {isMenuOpen && (
           <div className="absolute top-16 left-0 w-full bg-[#0F2744] shadow-lg flex flex-col items-center py-4 space-y-4 md:hidden border-t border-blue-900 z-50">
