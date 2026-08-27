@@ -25,6 +25,7 @@ const ClaimDetails = () => {
   const [verificationMessage, setVerificationMessage] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [verifiedMatch, setVerifiedMatch] = useState(null);
+  const [filterType, setFilterType] = useState('LOST'); // 'LOST' | 'FOUND' | 'ALL'
 
   const [currentUser] = useState(() => {
     try {
@@ -35,10 +36,11 @@ const ClaimDetails = () => {
     }
   });
 
-  const fetchMatches = async ({ showLoading = true } = {}) => {
+  const fetchMatches = async ({ showLoading = true, type = filterType } = {}) => {
     try {
       if (showLoading) setLoading(true);
-      const data = await fetchAPI(API_ENDPOINTS.GET_FOUND_FOR_ME);
+      const url = `${API_ENDPOINTS.GET_FOUND_FOR_ME}?type=${type}`;
+      const data = await fetchAPI(url);
       setMatches(data || []);
       setError('');
     } catch (err) {
@@ -53,7 +55,9 @@ const ClaimDetails = () => {
     let cancelled = false;
     (async () => {
       try {
-        const data = await fetchAPI(API_ENDPOINTS.GET_FOUND_FOR_ME);
+        setLoading(true);
+        const url = `${API_ENDPOINTS.GET_FOUND_FOR_ME}?type=${filterType}`;
+        const data = await fetchAPI(url);
         if (!cancelled) {
           setMatches(data || []);
           setError('');
@@ -68,7 +72,12 @@ const ClaimDetails = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [filterType]);
+
+  const handleFilterChange = (type) => {
+    setFilterType(type);
+    trackEvent('Claim Filter Changed', { type });
+  };
 
   const getMatchScore = (match) => {
     return Math.min(100, Math.round((match.finalScore || 0) * 10) / 10);
@@ -238,9 +247,45 @@ const ClaimDetails = () => {
 
       {/* Main Content */}
       <main className="flex-grow px-6 py-8 max-w-5xl mx-auto w-full">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Claim Management</h1>
-          <p className="text-gray-400">Manage matches and verify ownership of your items</p>
+        <div className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Claim Management</h1>
+            <p className="text-gray-400">Manage matches and verify ownership of your items</p>
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="flex bg-[#0A1A2F] p-1.5 rounded-xl border border-white/10 text-xs font-medium self-start md:self-auto shadow-inner">
+            <button
+              onClick={() => handleFilterChange('LOST')}
+              className={`px-4 py-2 rounded-lg transition-all cursor-pointer ${
+                filterType === 'LOST'
+                  ? 'bg-blue-600 text-white shadow-md font-semibold'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              📌 My Lost Items
+            </button>
+            <button
+              onClick={() => handleFilterChange('FOUND')}
+              className={`px-4 py-2 rounded-lg transition-all cursor-pointer ${
+                filterType === 'FOUND'
+                  ? 'bg-blue-600 text-white shadow-md font-semibold'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              📦 My Found Items
+            </button>
+            <button
+              onClick={() => handleFilterChange('ALL')}
+              className={`px-4 py-2 rounded-lg transition-all cursor-pointer ${
+                filterType === 'ALL'
+                  ? 'bg-blue-600 text-white shadow-md font-semibold'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              🗂️ All Matches
+            </button>
+          </div>
         </div>
 
         {verificationMessage && (
@@ -259,7 +304,13 @@ const ClaimDetails = () => {
           </div>
         ) : matches.length === 0 ? (
           <div className="text-center py-12 rounded-2xl border border-white/10 bg-white/5 p-8">
-            <p className="text-gray-400">No matches found yet. Report an item to get started!</p>
+            <p className="text-gray-400">
+              {filterType === 'LOST'
+                ? 'No matches found for your reported lost items yet.'
+                : filterType === 'FOUND'
+                ? 'No matches found for items you reported found yet.'
+                : 'No matches found yet. Report an item to get started!'}
+            </p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -310,7 +361,7 @@ const ClaimDetails = () => {
                 <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <h3 className="text-sm font-semibold text-gray-300 mb-4 flex items-center gap-2">
-                      <AlertCircle size={14} /> Your Lost Report
+                      <AlertCircle size={14} /> Lost Report Details
                     </h3>
                     <div className="space-y-2 text-sm">
                       <p><span className="text-gray-400">Category:</span> <span className="text-white font-medium">{match.lostReport.category}</span></p>
@@ -446,7 +497,7 @@ const ClaimDetails = () => {
                 {/* Expanded Details */}
                 {expandedMatch === match.id && (
                   <div className="px-6 py-4 bg-white/5 border-t border-white/10">
-                    <p className="text-sm text-gray-300 mb-3"><span className="font-semibold">Your Description:</span> {match.lostReport.description}</p>
+                    <p className="text-sm text-gray-300 mb-3"><span className="font-semibold">Lost Description:</span> {match.lostReport.description}</p>
                     <p className="text-sm text-gray-300">
                       <span className="font-semibold">Found Item Description:</span>{' '}
                       {isVerified(match)
