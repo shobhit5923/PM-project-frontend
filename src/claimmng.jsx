@@ -484,13 +484,19 @@ const ClaimDetails = () => {
                     {expandedMatch === match.id ? 'Hide Details' : 'View Details'}
                   </button>
                   {!isVerified(match) && verifyingMatchId !== match.id && (
-                    <button
-                      onClick={() => startVerification(match.id)}
-                      disabled={verificationLoading}
-                      className="flex-1 py-2.5 px-4 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium transition cursor-pointer"
-                    >
-                      Start Verification
-                    </button>
+                    Number(match.lostReport?.userId) === Number(currentUser?.id) ? (
+                      <button
+                        onClick={() => startVerification(match.id)}
+                        disabled={verificationLoading}
+                        className="flex-1 py-2.5 px-4 rounded-xl bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white font-medium transition cursor-pointer"
+                      >
+                        Start Verification
+                      </button>
+                    ) : (
+                      <div className="flex-1 py-2.5 px-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-300 text-xs flex items-center justify-center text-center font-medium">
+                        📦 You reported this item as found. Waiting for lost owner to verify ownership.
+                      </div>
+                    )
                   )}
                 </div>
 
