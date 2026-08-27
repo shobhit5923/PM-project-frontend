@@ -438,21 +438,31 @@ const ClaimDetails = () => {
                         <Loader size={16} className="animate-spin" /> Loading questions...
                       </div>
                     ) : (
-                      questions.map((q) => (
-                        <div key={q.id}>
-                          <label className="block text-sm text-gray-300 mb-1">
-                            {q.questionText || q.question}
-                            <span className="ml-2 text-xs text-gray-500">({q.sensitivity})</span>
-                          </label>
-                          <input
-                            type="text"
-                            value={answers[q.id] || ''}
-                            onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
-                            className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white text-sm"
-                            placeholder="Your answer"
-                          />
-                        </div>
-                      ))
+                      questions
+                        /*
+                         * To re-enable rendering of personal contents / identifying details question,
+                         * remove the filter below.
+                         */
+                        .filter((q) => {
+                          const text = (q.questionText || q.question || '').toLowerCase();
+                          const isPersonalContentsQ = text.includes('personal content') || text.includes('identifying detail');
+                          return !isPersonalContentsQ;
+                        })
+                        .map((q) => (
+                          <div key={q.id}>
+                            <label className="block text-sm text-gray-300 mb-1">
+                              {q.questionText || q.question}
+                              <span className="ml-2 text-xs text-gray-500">({q.sensitivity})</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={answers[q.id] || ''}
+                              onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                              className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/20 text-white text-sm"
+                              placeholder="Your answer"
+                            />
+                          </div>
+                        ))
                     )}
                     <div className="flex gap-3">
                       <button
