@@ -10,8 +10,10 @@ import {
   Clock,
   MapPin,
   Tag,
+  User,
 } from 'lucide-react';
 import { API_ENDPOINTS, fetchAPI } from './config/api';
+import { trackEvent } from './config/mixpanel';
 
 const BrowseItemsPage = () => {
   const navigate = useNavigate();
@@ -24,6 +26,15 @@ const BrowseItemsPage = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  const [currentUser] = useState(() => {
+    try {
+      const u = localStorage.getItem('user');
+      return u ? JSON.parse(u) : null;
+    } catch {
+      return null;
+    }
+  });
 
   // Brand Palette
   const colors = {
@@ -56,6 +67,8 @@ const BrowseItemsPage = () => {
     { label: 'All Reports', value: 'ALL' },
     { label: 'Lost Items', value: 'LOST' },
     { label: 'Found Items', value: 'FOUND' },
+    { label: 'My Reported Lost', value: 'MY_LOST' },
+    { label: 'My Reported Found', value: 'MY_FOUND' },
   ];
 
   useEffect(() => {
@@ -99,6 +112,11 @@ const BrowseItemsPage = () => {
     };
   }, []);
 
+  const handleStatusFilterChange = (filterVal) => {
+    setStatusFilter(filterVal);
+    trackEvent('Browse Filter Changed', { filterVal });
+  };
+
   const filteredItems = items
     .filter((item) => {
       // Search Query filter
@@ -115,8 +133,18 @@ const BrowseItemsPage = () => {
         item.category?.toLowerCase().includes(selectedCategory.toLowerCase());
 
       // Status filter
-      const matchesStatus =
-        statusFilter === 'ALL' || item.type === statusFilter;
+      let matchesStatus = true;
+      if (statusFilter === 'ALL') {
+        matchesStatus = true;
+      } else if (statusFilter === 'LOST') {
+        matchesStatus = item.type === 'LOST';
+      } else if (statusFilter === 'FOUND') {
+        matchesStatus = item.type === 'FOUND';
+      } else if (statusFilter === 'MY_LOST') {
+        matchesStatus = item.type === 'LOST' && Number(item.userId) === Number(currentUser?.id);
+      } else if (statusFilter === 'MY_FOUND') {
+        matchesStatus = item.type === 'FOUND' && Number(item.userId) === Number(currentUser?.id);
+      }
 
       // Date range filter
       let matchesDate = true;
@@ -161,10 +189,24 @@ const BrowseItemsPage = () => {
           <Link to="/about" className="hover:text-white transition">About</Link>
         </div>
 
-        {/* Mobile Menu Toggle */}
-        <button className="md:hidden text-white" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="flex items-center gap-3">
+          {currentUser ? (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-xs font-semibold shadow-sm">
+              <User size={14} className="text-blue-400" />
+              <span>{currentUser.name || currentUser.email}</span>
+            </div>
+          ) : (
+            <Link to="/login" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-medium transition">
+              <User size={14} />
+              <span>Login</span>
+            </Link>
+          )}
+
+          {/* Mobile Menu Toggle */}
+          <button className="md:hidden text-white" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
         
         {isMenuOpen && (
           <div className="absolute top-16 left-0 w-full bg-[#0F2744] shadow-lg flex flex-col items-center py-4 space-y-4 md:hidden border-t border-blue-900 z-50">
@@ -183,12 +225,50 @@ const BrowseItemsPage = () => {
       <main className="flex-grow px-6 py-12 max-w-7xl mx-auto w-full">
         
         {/* Title & Description */}
-        <div className="text-center mb-12">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Browse Items</h1>
-          <p className="text-gray-400 max-w-2xl mx-auto">
-            Explore all reported lost and found items. Use filters to narrow down your search and find what you're looking for.
+        <div className="text-center mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold mb-3">Browse Items</h1>
+          <p className="text-gray-400 max-w-2xl mx-auto text-sm">
+            Explore all reported lost and found items. Filter by community reports or your own submitted items.
           </p>
         </div>
+
+        {/* User Quick Filter Pills */}
+        {currentUser && (
+          <div className="flex justify-center mb-8">
+            <div className="flex bg-[#0F2744] p-1.5 rounded-xl border border-white/10 text-xs font-medium shadow-inner">
+              <button
+                onClick={() => handleStatusFilterChange('ALL')}
+                className={`px-4 py-2 rounded-lg transition-all cursor-pointer ${
+                  statusFilter === 'ALL'
+                    ? 'bg-blue-600 text-white shadow-md font-semibold'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                🌐 All Community Reports
+              </button>
+              <button
+                onClick={() => handleStatusFilterChange('MY_LOST')}
+                className={`px-4 py-2 rounded-lg transition-all cursor-pointer ${
+                  statusFilter === 'MY_LOST'
+                    ? 'bg-blue-600 text-white shadow-md font-semibold'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                📌 My Reported Lost
+              </button>
+              <button
+                onClick={() => handleStatusFilterChange('MY_FOUND')}
+                className={`px-4 py-2 rounded-lg transition-all cursor-pointer ${
+                  statusFilter === 'MY_FOUND'
+                    ? 'bg-blue-600 text-white shadow-md font-semibold'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                📦 My Reported Found
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Search & Filters Toolbar */}
         <div className="flex flex-col md:flex-row gap-4 mb-10 items-center justify-between p-4 bg-[#0F2744]/50 rounded-2xl border border-white/10 backdrop-blur-sm">
@@ -249,7 +329,7 @@ const BrowseItemsPage = () => {
               <Tag size={16} className="mr-2 text-blue-400" />
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => handleStatusFilterChange(e.target.value)}
                 className="bg-transparent text-white focus:outline-none cursor-pointer pr-4 appearance-none"
               >
                 {statusOptions.map((s) => (
@@ -275,7 +355,13 @@ const BrowseItemsPage = () => {
           </div>
         ) : filteredItems.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-400">No items match your selected filters. Try clearing filters.</p>
+            <p className="text-gray-400">
+              {statusFilter === 'MY_LOST'
+                ? 'You have not reported any lost items yet.'
+                : statusFilter === 'MY_FOUND'
+                ? 'You have not reported any found items yet.'
+                : 'No items match your selected filters. Try clearing filters.'}
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
@@ -287,9 +373,16 @@ const BrowseItemsPage = () => {
                 onClick={() => navigate('/claimmng')}
               >
                 <div className="flex items-center justify-between mb-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.type === 'LOST' ? 'bg-red-500/20 text-red-300' : 'bg-blue-500/20 text-blue-300'}`}>
-                    {item.type || 'Item'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${item.type === 'LOST' ? 'bg-red-500/20 text-red-300' : 'bg-blue-500/20 text-blue-300'}`}>
+                      {item.type || 'Item'}
+                    </span>
+                    {currentUser && Number(item.userId) === Number(currentUser.id) && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                        Yours
+                      </span>
+                    )}
+                  </div>
                   <div className="flex flex-col items-end gap-1">
                     <span className="text-xs text-gray-500">{new Date(item.dateLostFound || item.createdAt).toLocaleDateString()}</span>
                     {item.hasMatch && item.matchScore && (
