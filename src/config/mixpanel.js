@@ -33,6 +33,25 @@ export const trackEvent = (eventName, properties = {}) => {
   }
 };
 
+export const getScoreBucket = (score) => {
+  const s = Math.min(100, Math.max(0, Math.round(score || 0)));
+  if (s <= 50) return 'Low (0–50)';
+  if (s <= 70) return 'Medium (51–70)';
+  if (s <= 85) return 'High (71–85)';
+  return 'Very High (86–100)';
+};
+
+export const trackMatchGenerated = (matchScore, extraProps = {}) => {
+  const score = Math.min(100, Math.max(0, Math.round(matchScore || 0)));
+  const bucket = getScoreBucket(score);
+
+  trackEvent('Match Generated', {
+    match_score: score,
+    match_score_bucket: bucket,
+    ...extraProps,
+  });
+};
+
 export const trackPageView = (pageName) => {
   try {
     if (!isInitialized) initMixpanel();

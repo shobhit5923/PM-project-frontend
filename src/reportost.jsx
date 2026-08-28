@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import logo from './assets/logo1.png';
 import { ArrowRight, Loader, CheckCircle2, AlertCircle, Menu, X } from 'lucide-react';
 import { API_ENDPOINTS, fetchAPI } from './config/api';
-import { trackEvent } from './config/mixpanel';
+import { trackEvent, trackMatchGenerated } from './config/mixpanel';
 
 const ReportLostPage = () => {
   const navigate = useNavigate();
@@ -64,6 +64,12 @@ const ReportLostPage = () => {
 
       if (data.matches && data.matches.length > 0) {
         setMatches(data.matches);
+        data.matches.forEach((m) => {
+          trackMatchGenerated(m.finalScore, {
+            match_id: m.id,
+            report_type: 'LOST',
+          });
+        });
       }
 
       trackEvent('Report Lost Submitted', {

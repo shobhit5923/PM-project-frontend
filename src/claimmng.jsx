@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import logo from "./assets/logo1.png";
 import { API_ENDPOINTS, fetchAPI } from './config/api';
-import { trackEvent } from './config/mixpanel';
+import { trackEvent, trackMatchGenerated } from './config/mixpanel';
 
 const ClaimDetails = () => {
   const [matches, setMatches] = useState([]);
@@ -42,6 +42,14 @@ const ClaimDetails = () => {
       const url = `${API_ENDPOINTS.GET_FOUND_FOR_ME}?type=${type}`;
       const data = await fetchAPI(url);
       setMatches(data || []);
+      if (data && Array.isArray(data)) {
+        data.forEach((m) => {
+          trackMatchGenerated(m.finalScore, {
+            match_id: m.id,
+            status: m.status,
+          });
+        });
+      }
       setError('');
     } catch (err) {
       console.error('Error fetching matches:', err);
@@ -60,6 +68,14 @@ const ClaimDetails = () => {
         const data = await fetchAPI(url);
         if (!cancelled) {
           setMatches(data || []);
+          if (data && Array.isArray(data)) {
+            data.forEach((m) => {
+              trackMatchGenerated(m.finalScore, {
+                match_id: m.id,
+                status: m.status,
+              });
+            });
+          }
           setError('');
         }
       } catch (err) {
