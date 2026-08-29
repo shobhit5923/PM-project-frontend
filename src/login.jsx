@@ -33,15 +33,13 @@ const GlassLogin = () => {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
 
-        if (data.user) {
-          identifyUser(data.user.id, {
-            name: data.user.name,
-            email: data.user.email,
-          });
+        if (data.user?.id) {
+          identifyUser(data.user.id);
         }
       }
 
-      trackEvent('User Logged In', { email: data.user?.email });
+      // Track successful login event without PII
+      trackEvent('User Logged In', { source_page: 'login' });
 
       navigate("/services");
     } catch (err) {

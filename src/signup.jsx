@@ -3,7 +3,7 @@ import { User, Mail, Lock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import logo from "./assets/logo.png";
 import { API_ENDPOINTS, fetchAPI } from "./config/api";
-import { trackEvent } from "./config/mixpanel";
+import { trackEvent, identifyUser } from "./config/mixpanel";
 
 const GlassSignup = () => {
   const navigate = useNavigate();
@@ -30,12 +30,17 @@ const GlassSignup = () => {
     setError("");
 
     try {
-      await fetchAPI(API_ENDPOINTS.SIGNUP, {
+      const data = await fetchAPI(API_ENDPOINTS.SIGNUP, {
         method: "POST",
         body: JSON.stringify({ name, email, password }),
       });
 
-      trackEvent('User Signed Up', { name, email });
+      if (data?.user?.id) {
+        identifyUser(data.user.id);
+      }
+
+      // Track successful signup without PII
+      trackEvent('User Signed Up', { source_page: 'signup' });
 
       navigate("/login");
     } catch (err) {

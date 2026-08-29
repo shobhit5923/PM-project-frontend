@@ -66,18 +66,26 @@ const ReportFoundPage = () => {
 
       if (data.matches && Array.isArray(data.matches)) {
         data.matches.forEach((m) => {
-          trackMatchGenerated(m.finalScore, {
+          trackMatchGenerated({
+            match_score: m.finalScore,
+            report_type: 'found',
+            category: category || 'Uncategorized',
+            has_exact_identifier_match: Boolean(m.hasExactIdentifierMatch || (uniqueIdentifier && uniqueIdentifier.trim())),
+            match_source: 'automatic',
             match_id: m.id,
-            report_type: 'FOUND',
           });
         });
       }
 
+      // Safe non-PII report event properties
       trackEvent('Report Found Submitted', {
-        category,
-        brand: brand || null,
-        model: model || null,
-        color: color || null,
+        report_type: 'found',
+        category: category || 'Uncategorized',
+        has_brand: Boolean(brand && brand.trim()),
+        has_model: Boolean(model && model.trim()),
+        has_color: Boolean(color && color.trim()),
+        has_description: Boolean(fullDescription && fullDescription.trim()),
+        source_page: 'reportfound',
       });
 
       setStep(3);

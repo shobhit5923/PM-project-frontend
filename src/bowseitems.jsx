@@ -114,7 +114,7 @@ const BrowseItemsPage = () => {
 
   const handleStatusFilterChange = (filterVal) => {
     setStatusFilter(filterVal);
-    trackEvent('Browse Filter Changed', { filterVal });
+    trackEvent('Browse Filter Changed', { filter_type: filterVal });
   };
 
   const filteredItems = items

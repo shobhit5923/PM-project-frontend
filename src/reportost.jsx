@@ -65,19 +65,26 @@ const ReportLostPage = () => {
       if (data.matches && data.matches.length > 0) {
         setMatches(data.matches);
         data.matches.forEach((m) => {
-          trackMatchGenerated(m.finalScore, {
+          trackMatchGenerated({
+            match_score: m.finalScore,
+            report_type: 'lost',
+            category: category || 'Uncategorized',
+            has_exact_identifier_match: Boolean(m.hasExactIdentifierMatch || (uniqueIdentifier && uniqueIdentifier.trim())),
+            match_source: 'automatic',
             match_id: m.id,
-            report_type: 'LOST',
           });
         });
       }
 
+      // Safe non-PII report event properties
       trackEvent('Report Lost Submitted', {
-        category,
-        brand: brand || null,
-        model: model || null,
-        color: color || null,
-        matchCount: data.matches?.length || 0,
+        report_type: 'lost',
+        category: category || 'Uncategorized',
+        has_brand: Boolean(brand && brand.trim()),
+        has_model: Boolean(model && model.trim()),
+        has_color: Boolean(color && color.trim()),
+        has_description: Boolean(fullDescription && fullDescription.trim()),
+        source_page: 'reportlost',
       });
 
       setStep(3);

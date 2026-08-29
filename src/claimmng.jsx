@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import logo from "./assets/logo1.png";
 import { API_ENDPOINTS, fetchAPI } from './config/api';
-import { trackEvent, trackMatchGenerated } from './config/mixpanel';
+import { trackEvent, trackMatchGenerated, getScoreBucket } from './config/mixpanel';
 
 const ClaimDetails = () => {
   const [matches, setMatches] = useState([]);
@@ -44,9 +44,21 @@ const ClaimDetails = () => {
       setMatches(data || []);
       if (data && Array.isArray(data)) {
         data.forEach((m) => {
-          trackMatchGenerated(m.finalScore, {
+          const isLostOwner = Number(m.lostReport?.userId) === Number(currentUser?.id);
+          const cat = m.foundReport?.category || m.lostReport?.category || 'Uncategorized';
+          const hasExactIdMatch = Boolean(
+            m.hasExactIdentifierMatch ||
+            (m.lostReport?.uniqueIdentifier &&
+             m.foundReport?.uniqueIdentifier &&
+             m.lostReport.uniqueIdentifier.toLowerCase() === m.foundReport.uniqueIdentifier.toLowerCase())
+          );
+          trackMatchGenerated({
+            match_score: m.finalScore,
+            report_type: isLostOwner ? 'lost' : 'found',
+            category: cat,
+            has_exact_identifier_match: hasExactIdMatch,
+            match_source: 'automatic',
             match_id: m.id,
-            status: m.status,
           });
         });
       }
@@ -70,9 +82,21 @@ const ClaimDetails = () => {
           setMatches(data || []);
           if (data && Array.isArray(data)) {
             data.forEach((m) => {
-              trackMatchGenerated(m.finalScore, {
+              const isLostOwner = Number(m.lostReport?.userId) === Number(currentUser?.id);
+              const cat = m.foundReport?.category || m.lostReport?.category || 'Uncategorized';
+              const hasExactIdMatch = Boolean(
+                m.hasExactIdentifierMatch ||
+                (m.lostReport?.uniqueIdentifier &&
+                 m.foundReport?.uniqueIdentifier &&
+                 m.lostReport.uniqueIdentifier.toLowerCase() === m.foundReport.uniqueIdentifier.toLowerCase())
+              );
+              trackMatchGenerated({
+                match_score: m.finalScore,
+                report_type: isLostOwner ? 'lost' : 'found',
+                category: cat,
+                has_exact_identifier_match: hasExactIdMatch,
+                match_source: 'automatic',
                 match_id: m.id,
-                status: m.status,
               });
             });
           }
@@ -92,7 +116,7 @@ const ClaimDetails = () => {
 
   const handleFilterChange = (type) => {
     setFilterType(type);
-    trackEvent('Claim Filter Changed', { type });
+    trackEvent('Claim Filter Changed', { filter_type: type });
   };
 
   const getMatchScore = (match) => {
@@ -116,7 +140,8 @@ const ClaimDetails = () => {
     setAnswers({});
 
     try {
-      const existing = matches.find((m) => m.id === matchId)?.questions || [];
+      const targetMatch = matches.find((m) => m.id === matchId);
+      const existing = targetMatch?.questions || [];
       if (existing.length > 0) {
         setQuestions(existing);
       } else {
@@ -125,7 +150,10 @@ const ClaimDetails = () => {
         });
         setQuestions(qs || []);
       }
-      trackEvent('Verification Started', { matchId });
+      trackEvent('Verification Started', {
+        verification_stage: 'started',
+        match_score_bucket: getScoreBucket(targetMatch?.finalScore),
+      });
     } catch (err) {
       setVerificationMessage(err.message || 'Failed to start verification');
       setVerifyingMatchId(null);
@@ -163,10 +191,12 @@ const ClaimDetails = () => {
           : `Answers submitted. Updated score: ${updatedScore}`
       );
 
+      const targetMatch = matches.find((m) => m.id === matchId);
+      const finalScore = result.finalScore !== undefined ? result.finalScore : targetMatch?.finalScore;
+
       trackEvent('Verification Answers Submitted', {
-        matchId,
-        status: result.status,
-        finalScore: result.finalScore,
+        verification_stage: 'submitted',
+        match_score_bucket: getScoreBucket(finalScore),
       });
 
       if (isClaimVerified) {
